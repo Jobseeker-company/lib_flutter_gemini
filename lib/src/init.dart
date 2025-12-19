@@ -29,6 +29,7 @@ class Gemini implements GeminiInterface {
   /// [enableDebugging]
   /// to see request progress
   static bool? enableDebugging = false;
+  String apiKey;
 
   /// Private constructor for initializing the Gemini instance. This constructor
   /// is used internally to configure the Gemini service with the necessary API key,
@@ -44,7 +45,7 @@ class Gemini implements GeminiInterface {
   /// - `disableAutoUpdateModelName` (optional bool, default false): Flag to disable auto-updating of the model name.
   Gemini._({
     /// [apiKey] is required property
-    required String apiKey,
+    required this.apiKey,
     String? baseURL,
     Map<String, dynamic>? headers,
 
