@@ -14,29 +14,40 @@ class GeminiModelManager {
 
   Future<String> resolveModelName({
     required String? userModel,
+    String? defaultModel,
     required String expectedModel,
   }) async {
+    final effectiveModel = (userModel != null && userModel.trim().isNotEmpty)
+        ? userModel.trim()
+        : (defaultModel != null && defaultModel.trim().isNotEmpty)
+            ? defaultModel.trim()
+            : null;
+
     if (Gemini.instance.disableAutoUpdateModelName) {
-      return userModel ?? expectedModel;
+      return effectiveModel ?? expectedModel;
     }
 
-    _models ??= await _listModels();
+    try {
+      _models ??= await _listModels();
+    } catch (_) {
+      // If model listing fails, fallback directly to effectiveModel or expectedModel
+      return effectiveModel ?? expectedModel;
+    }
 
-    if (userModel != null) {
-      final resolved = _findModel(userModel);
+    if (effectiveModel != null) {
+      final resolved = _findModel(effectiveModel);
       if (resolved != null) return resolved;
-      _logModelNotFound(userModel);
+      _logModelNotFound(effectiveModel);
     }
 
     final resolvedExpected = _findModel(expectedModel);
     if (resolvedExpected != null) return resolvedExpected;
 
-    return _findFallbackModel(userModel, expectedModel);
+    return _findFallbackModel(effectiveModel, expectedModel);
   }
 
   Future<List<GeminiModel>> _listModels() async {
-    final response = await _api
-        .get('${Constants.baseUrl}${Constants.defaultVersion}/models');
+    final response = await _api.get('models');
     return GeminiModel.jsonToList(response.data['models']);
   }
 

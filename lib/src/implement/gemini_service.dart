@@ -65,13 +65,16 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
       log(timeout.debug());
     }
 
+    Map<String, dynamic>? queryParams;
+    if (apiKey.trim().isNotEmpty) {
+      queryParams = {'key': apiKey};
+    }
+
     // Make the POST request using Dio.
     return handler(() => dio.post(
           route,
           data: jsonEncode(data), // Encode the data as JSON.
-          queryParameters: {
-            'key': apiKey
-          }, // Include the API key in the query parameters.
+          queryParameters: queryParams,
           options: Options(
             responseType: isStreamResponse == true ? ResponseType.stream : null,
             receiveTimeout: timeout?.receiveTimeout,
@@ -91,11 +94,13 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
     if (timeout != null) {
       log(timeout.debug());
     }
+    Map<String, dynamic>? queryParams;
+    if (apiKey.trim().isNotEmpty) {
+      queryParams = {'key': apiKey};
+    }
     // Make the GET request using Dio.
     return handler(() => dio.get(route,
-        queryParameters: {
-          'key': apiKey
-        }, // Include the API key in the query parameters.
+        queryParameters: queryParams,
         options: Options(
           receiveTimeout: timeout?.receiveTimeout,
           sendTimeout: timeout?.sendTimeout,

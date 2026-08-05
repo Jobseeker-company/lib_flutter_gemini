@@ -46,28 +46,75 @@ mixin GeminiExceptionHandler on ApiInterface {
         return res;
       }
 
-      // Throw a GeminiException if the status code indicates failure.
-      throw GeminiException(res.data?['error'], statusCode: statusCode);
+      Object? errorMsg;
+      dynamic details;
+
+      if (res.data is Map) {
+        final mapData = res.data as Map;
+        final error = mapData['error'];
+        if (error is Map) {
+          errorMsg = error['message'] ?? error;
+          details = error['details'];
+        } else {
+          errorMsg = error ?? res.data;
+        }
+      } else {
+        errorMsg = res.data;
+      }
+
+      throw GeminiApiException(
+        errorMsg ?? 'API error ($statusCode)',
+        statusCode: statusCode,
+        details: details,
+      );
     } catch (e) {
+      if (e is GeminiException) {
+        rethrow;
+      }
+
       // Handle Dio-specific exceptions.
       if (e is DioException) {
+        final statusCode = e.response?.statusCode;
         final data = e.response?.data;
 
-        // Check if the response contains a raw `ResponseBody`.
-        if (data is ResponseBody) {
-          throw GeminiException(
-            e.message ?? 'Something went wrong!',
-            statusCode: e.response!.statusCode,
+        if (e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.connectionError) {
+          throw GeminiNetworkException(
+            e.message ?? 'Network connection failed or timed out',
+            statusCode: statusCode,
           );
         }
 
-        // For other DioExceptions, throw a GeminiException with status -1.
-        throw GeminiException(e.message ?? 'Something went wrong!',
-            statusCode: -1);
+        if (data != null && data is Map) {
+          final error = data['error'];
+          final message = error is Map
+              ? (error['message'] ?? e.message)
+              : (error ?? e.message ?? 'API Error');
+          final details = error is Map ? error['details'] : null;
+          throw GeminiApiException(
+            message,
+            statusCode: statusCode ?? 500,
+            details: details,
+          );
+        }
+
+        if (statusCode != null) {
+          throw GeminiApiException(
+            e.message ?? 'HTTP Error $statusCode',
+            statusCode: statusCode,
+          );
+        }
+
+        throw GeminiNetworkException(
+          e.message ?? 'Network error occurred',
+          statusCode: statusCode,
+        );
       }
 
-      // For all other exceptions, wrap them in a GeminiException.
-      throw GeminiException(e, statusCode: -1);
+      // For all other exceptions, wrap in GeminiApiException or GeminiException.
+      throw GeminiApiException(e.toString(), statusCode: -1);
     }
   }
 }

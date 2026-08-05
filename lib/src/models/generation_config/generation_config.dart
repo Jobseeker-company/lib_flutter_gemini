@@ -28,6 +28,8 @@ class GenerationConfig {
   int? maxOutputTokens; // Maximum number of tokens to be generated.
   double? topP; // Nucleus sampling parameter.
   int? topK; // The number of top tokens to sample from.
+  String?
+      responseMimeType; // MIME type of the output response (e.g. application/json).
 
   // Constructor to initialize the GenerationConfig instance with optional parameters.
   GenerationConfig({
@@ -36,11 +38,12 @@ class GenerationConfig {
     this.maxOutputTokens,
     this.topP,
     this.topK,
+    this.responseMimeType,
   });
 
   /// Factory method to create a GenerationConfig instance from JSON data.
   /// It converts JSON fields like `stopSequences`, `temperature`, `maxOutputTokens`,
-  /// `topP`, and `topK` to their corresponding properties in the `GenerationConfig` class.
+  /// `topP`, `topK`, and `responseMimeType` to their corresponding properties in the `GenerationConfig` class.
   ///
   /// **Example:**
   /// ```dart
@@ -55,6 +58,7 @@ class GenerationConfig {
         maxOutputTokens: (json['maxOutputTokens'] as num?)?.toInt(),
         topP: (json['topP'] as num?)?.toDouble(),
         topK: (json['topK'] as num?)?.toInt(),
+        responseMimeType: json['responseMimeType'] as String?,
       );
 
   /// Converts the GenerationConfig instance into a JSON map. This is useful for
@@ -65,11 +69,12 @@ class GenerationConfig {
   /// var json = config.toJson();
   /// ```
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'stopSequences': stopSequences,
-        'temperature': temperature,
-        'maxOutputTokens': maxOutputTokens,
-        'topP': topP,
-        'topK': topK,
+        if (stopSequences != null) 'stopSequences': stopSequences,
+        if (temperature != null) 'temperature': temperature,
+        if (maxOutputTokens != null) 'maxOutputTokens': maxOutputTokens,
+        if (topP != null) 'topP': topP,
+        if (topK != null) 'topK': topK,
+        if (responseMimeType != null) 'responseMimeType': responseMimeType,
       };
 
   /// Converts a list of JSON objects into a list of `GenerationConfig` instances.

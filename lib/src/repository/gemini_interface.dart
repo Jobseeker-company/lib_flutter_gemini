@@ -4,63 +4,50 @@ import '../../flutter_gemini.dart';
 
 abstract class GeminiInterface {
   /// [listModels]
-  /// If you `GET` the `models` directory, it used the `list` method to list
-  /// all of the models available through the API, including both the Gemini and PaLM family models.
-  Future<List<GeminiModel>> listModels();
+  Future<List<GeminiModel>> listModels({TimeoutConfig? timeoutConfig});
 
   /// [info]
-  /// If you `GET` a model's URL, the API used the `get` method to return
-  /// information about that model such as version, display name, input token limit, etc.
-  Future<GeminiModel> info({required String model});
+  Future<GeminiModel> info(
+      {required String model, TimeoutConfig? timeoutConfig});
 
-  /// [text] Use the `generateContent` method to generate a response
-  /// from the model given an input message.
-  /// If the input contains only text, use the `gemini-pro` model.
+  /// [text]
   @Deprecated('Please use the `prompt` or `promptStream` method')
   Future<Candidates?> text(
     String text, {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [Embedding] is a technique used to represent information as a
-  /// list of floating point numbers in an array.
-  /// With Gemini, you can represent text (words, sentences, and blocks of text)
-  /// in a vectorized form, making it easier to compare and contrast embeddings.
-  /// For example, two texts that share a similar subject matter or sentiment
-  /// should have similar embeddings, which can be identified through mathematical
-  /// comparison techniques such as cosine similarity.
-  ///
-  /// Use the `embedding-001` model with either [embedContent] or [batchEmbedContents]
+  /// [batchEmbedContents]
   Future<List<List<num>?>?> batchEmbedContents(
     List<String> texts, {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [embedContent] description in upper comments
+  /// [embedContent]
   Future<List<num>?> embedContent(
     String text, {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [countTokens] When using long prompts, it might be useful to count tokens
-  /// before sending any content to the model.
+  /// [countTokens]
   Future<int?> countTokens(
     String text, {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [streamGenerateContent] By default, the model returns a response after
-  /// completing the entire generation process.
-  /// You can achieve faster interactions by not waiting
-  /// for the entire result, and instead use streaming to handle partial results.
+  /// [streamGenerateContent]
   @Deprecated('Please use the `prompt` or `promptStream` method')
   Stream<Candidates> streamGenerateContent(
     String text, {
@@ -68,6 +55,7 @@ abstract class GeminiInterface {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
   @Deprecated('Please use the `prompt` or `promptStream` method')
@@ -76,46 +64,48 @@ abstract class GeminiInterface {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [chat] or `Multi-turn conversations`
-  /// Using Gemini, you can build freeform conversations across multiple turns.
+  /// [chat]
   @Deprecated('Please use the `prompt` or `promptStream` method')
   Future<Candidates?> chat(
     List<Content> chats, {
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    String? systemPrompt,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [textAndImage] If the input contains both text and image, use
-  /// the `gemini-1.5-flash` model. The following snippets help you build a request and send it to the REST API.
+  /// [textAndImage]
   Future<Candidates?> textAndImage({
     required String text,
     required List<Uint8List> images,
     String? modelName,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
   // cancel request
   Future<void> cancelRequest();
 
-  /// [prompt] If the input contains both text and image, use
-  /// the `gemini-1.5-flash` model. The following snippets help you build a request and send it to the REST API.
+  /// [prompt]
   Future<Candidates?> prompt({
     required List<Part> parts,
     String? model,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 
-  /// [prompt] If the input contains both text and image, use
-  /// the `gemini-1.5-flash` model. The following snippets help you build a request and send it to the REST API.
+  /// [promptStream]
   Stream<Candidates?> promptStream({
     required List<Part> parts,
     String? model,
     List<SafetySetting>? safetySettings,
     GenerationConfig? generationConfig,
+    TimeoutConfig? timeoutConfig,
   });
 }

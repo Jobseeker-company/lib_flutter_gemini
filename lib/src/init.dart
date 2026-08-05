@@ -30,41 +30,41 @@ class Gemini implements GeminiInterface {
   /// to see request progress
   static bool? enableDebugging = false;
   String apiKey;
+  String? defaultModel;
+  GenerationConfig? defaultGenerationConfig;
+  bool includeVersionInBaseUrl;
+  bool disableAutoUpdateModelName;
+  String? baseURL;
+  String? version;
+  Map<String, dynamic>? headers;
+  List<SafetySetting>? safetySettings;
 
-  /// Private constructor for initializing the Gemini instance. This constructor
-  /// is used internally to configure the Gemini service with the necessary API key,
-  /// optional configuration settings, and safety options.
-  ///
-  /// **Parameters:**
-  /// - `apiKey` (required String): The API key required to authenticate requests.
-  /// - `baseURL` (optional String): The base URL for the API, defaults to a predefined constant if not provided.
-  /// - `headers` (optional Map<String, dynamic>): Custom headers to include in the API requests.
-  /// - `safetySettings` (optional List<SafetySetting>): Optional safety settings to apply to the API requests.
-  /// - `generationConfig` (optional GenerationConfig): Configuration related to text generation, such as model parameters.
-  /// - `version` (optional String): The API version to use. Defaults to a predefined constant if not provided.
-  /// - `disableAutoUpdateModelName` (optional bool, default false): Flag to disable auto-updating of the model name.
   Gemini._({
-    /// [apiKey] is required property
     required this.apiKey,
-    String? baseURL,
-    Map<String, dynamic>? headers,
-
-    /// theses properties are optional
-    List<SafetySetting>? safetySettings,
-    GenerationConfig? generationConfig,
-    String? version,
+    this.baseURL,
+    this.defaultModel,
+    this.headers,
+    this.safetySettings,
+    this.defaultGenerationConfig,
+    this.version,
+    this.includeVersionInBaseUrl = true,
     this.disableAutoUpdateModelName = false,
   }) : _impl = GeminiImpl(
           api: GeminiService(
-              Dio(BaseOptions(
-                baseUrl:
-                    '${baseURL ?? Constants.baseUrl}${version ?? Constants.defaultVersion}/',
-                contentType: 'application/json',
-                headers: headers,
-              )),
-              apiKey: apiKey),
+            Dio(BaseOptions(
+              baseUrl: includeVersionInBaseUrl
+                  ? '${baseURL ?? Constants.baseUrl}${version ?? Constants.defaultVersion}/'
+                  : (baseURL != null && baseURL.endsWith('/')
+                      ? baseURL
+                      : '${baseURL ?? Constants.baseUrl}/'),
+              contentType: 'application/json',
+              headers: headers,
+            )),
+            apiKey: apiKey,
+          ),
+          defaultModel: defaultModel,
           safetySettings: safetySettings,
-          generationConfig: generationConfig,
+          generationConfig: defaultGenerationConfig,
         );
 
   /// singleton [instance] from main [Gemini] class
@@ -100,20 +100,24 @@ class Gemini implements GeminiInterface {
   /// **Parameters:**
   /// - `apiKey` (required String): The API key for authenticating requests.
   /// - `baseURL` (optional String): The base URL for the API.
-  /// - `headers` (optional Map<String, dynamic>): Custom headers for API requests.
+  /// - `defaultModel` (optional String): Global fallback model name.
+  /// - `generationConfig` (optional GenerationConfig): Default generation parameters.
   /// - `safetySettings` (optional List<SafetySetting>): Safety settings to configure content filtering.
-  /// - `generationConfig` (optional GenerationConfig): Configuration for text generation.
+  /// - `headers` (optional Map<String, dynamic>): Custom headers for API requests.
   /// - `enableDebugging` (optional bool): Flag to enable debugging (logs, verbose output).
   /// - `version` (optional String): The API version to use.
+  /// - `includeVersionInBaseUrl` (default true): Controls whether version is appended to baseURL.
   /// - `disableAutoUpdateModelName` (default false): Flag to disable automatic model name updates.
   factory Gemini.init({
     required String apiKey,
     String? baseURL,
-    Map<String, dynamic>? headers,
-    List<SafetySetting>? safetySettings,
+    String? defaultModel,
     GenerationConfig? generationConfig,
+    List<SafetySetting>? safetySettings,
+    Map<String, dynamic>? headers,
     bool? enableDebugging,
     String? version,
+    bool includeVersionInBaseUrl = true,
     bool disableAutoUpdateModelName = false,
   }) {
     Gemini.enableDebugging = enableDebugging;
@@ -122,10 +126,12 @@ class Gemini implements GeminiInterface {
       instance = Gemini._(
         apiKey: apiKey,
         baseURL: baseURL,
+        defaultModel: defaultModel,
         headers: headers,
         safetySettings: safetySettings,
-        generationConfig: generationConfig,
+        defaultGenerationConfig: generationConfig,
         version: version,
+        includeVersionInBaseUrl: includeVersionInBaseUrl,
         disableAutoUpdateModelName: disableAutoUpdateModelName,
       );
     }
@@ -135,21 +141,25 @@ class Gemini implements GeminiInterface {
   factory Gemini.reInitialize({
     required String apiKey,
     String? baseURL,
-    Map<String, dynamic>? headers,
-    List<SafetySetting>? safetySettings,
+    String? defaultModel,
     GenerationConfig? generationConfig,
+    List<SafetySetting>? safetySettings,
+    Map<String, dynamic>? headers,
     bool? enableDebugging,
     String? version,
+    bool includeVersionInBaseUrl = true,
     bool disableAutoUpdateModelName = false,
   }) {
     Gemini.enableDebugging = enableDebugging;
     instance = Gemini._(
       apiKey: apiKey,
       baseURL: baseURL,
+      defaultModel: defaultModel,
       headers: headers,
       safetySettings: safetySettings,
-      generationConfig: generationConfig,
+      defaultGenerationConfig: generationConfig,
       version: version,
+      includeVersionInBaseUrl: includeVersionInBaseUrl,
       disableAutoUpdateModelName: disableAutoUpdateModelName,
     );
     return instance;
@@ -254,13 +264,16 @@ class Gemini implements GeminiInterface {
   /// If you `GET` a model's URL, the API used the `get` method to return
   /// information about that model such as version, display name, input token limit, etc.
   @override
-  Future<GeminiModel> info({required String model}) => _impl.info(model: model);
+  Future<GeminiModel> info(
+          {required String model, TimeoutConfig? timeoutConfig}) =>
+      _impl.info(model: model, timeoutConfig: timeoutConfig);
 
   /// [listModels]
   /// If you `GET` the `models` directory, it used the `list` method to list
   /// all of the models available through the API, including both the Gemini and PaLM family models.
   @override
-  Future<List<GeminiModel>> listModels() => _impl.listModels();
+  Future<List<GeminiModel>> listModels({TimeoutConfig? timeoutConfig}) =>
+      _impl.listModels(timeoutConfig: timeoutConfig);
 
   /// [streamGenerateContent] By default, the model returns a response after
   /// completing the entire generation process.
@@ -402,7 +415,6 @@ class Gemini implements GeminiInterface {
       );
 
   dynamic typeProvider;
-  bool disableAutoUpdateModelName;
 
   @override
   Future<void> cancelRequest() => _impl.cancelRequest();

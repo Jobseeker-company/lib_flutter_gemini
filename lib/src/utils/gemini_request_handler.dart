@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_gemini/src/models/timeout_config/timeout_config.dart';
+import 'package:flutter_gemini/src/models/generation_config/generation_config.dart';
+import 'package:flutter_gemini/src/models/gemini_safety/gemini_safety.dart';
 import 'package:flutter_gemini/src/utils/gemini_response_parser.dart';
 import 'package:flutter_gemini/src/implement/gemini_service.dart';
 import 'package:flutter_gemini/src/init.dart';
@@ -16,13 +18,21 @@ class GeminiRequestHandler {
     Map<String, Object>? data,
     required T Function(Map<String, dynamic>) responseParser,
     bool isGetRequest = false,
+    GenerationConfig? generationConfig,
+    List<SafetySetting>? safetySettings,
     TimeoutConfig? timeoutConfig,
   }) async {
     _clearTypeProvider();
     try {
       final Response response = isGetRequest
           ? await _api.get(endpoint, timeout: timeoutConfig)
-          : await _api.post(endpoint, data: data, timeout: timeoutConfig);
+          : await _api.post(
+              endpoint,
+              data: data,
+              generationConfig: generationConfig,
+              safetySettings: safetySettings,
+              timeout: timeoutConfig,
+            );
       return responseParser(response.data);
     } finally {
       _setTypeProviderLoading(false);
@@ -33,6 +43,8 @@ class GeminiRequestHandler {
   Stream<Candidates> executeStreamRequest({
     required String endpoint,
     required Map<String, Object> data,
+    GenerationConfig? generationConfig,
+    List<SafetySetting>? safetySettings,
     TimeoutConfig? timeoutConfig,
   }) async* {
     _clearTypeProvider();
@@ -40,6 +52,8 @@ class GeminiRequestHandler {
       final response = await _api.post(
         endpoint,
         data: data,
+        generationConfig: generationConfig,
+        safetySettings: safetySettings,
         isStreamResponse: true,
         timeout: timeoutConfig,
       );
