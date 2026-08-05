@@ -14,7 +14,8 @@ class GeminiRequestHandler {
 
   bool get _isOpenAi =>
       _api.dio.options.baseUrl.contains('openai.com') ||
-      _api.dio.options.baseUrl.contains('openai');
+      _api.dio.options.baseUrl.contains('openai') ||
+      (Gemini.instance.defaultModel?.contains('gpt') ?? false);
 
   Map<String, Object> _transformForOpenAi({
     required String endpoint,
@@ -23,45 +24,97 @@ class GeminiRequestHandler {
     required bool isStream,
   }) {
     String modelName = endpoint.split(':').first;
-    if (modelName.isEmpty || modelName == 'models') {
-      modelName = 'gpt-4.1';
+    if (modelName.startsWith('models/')) {
+      modelName = modelName.substring(7);
     }
-
-    String promptText = '';
-    if (data != null && data.containsKey('contents')) {
-      final contents = data['contents'] as List?;
-      if (contents != null && contents.isNotEmpty) {
-        final lastContent = contents.last as Map<String, dynamic>?;
-        final parts = lastContent?['parts'] as List?;
-        if (parts != null && parts.isNotEmpty) {
-          final firstPart = parts.first as Map<String, dynamic>?;
-          promptText = firstPart?['text']?.toString() ?? '';
-        }
+    if (modelName.isEmpty || modelName == 'models') {
+      modelName = Gemini.instance.defaultModel ?? 'gpt-4o-mini';
+      if (modelName.startsWith('models/')) {
+        modelName = modelName.substring(7);
       }
     }
 
+    final openAiMessages = <Map<String, dynamic>>[];
+
+    if (data != null && data.containsKey('contents')) {
+      final contents = data['contents'] as List?;
+      if (contents != null) {
+        for (final c in contents) {
+          if (c is Map<String, dynamic>) {
+            final geminiRole = c['role']?.toString();
+            final role = (geminiRole == 'model') ? 'assistant' : (geminiRole ?? 'user');
+            final parts = c['parts'] as List?;
+            final textBuffer = StringBuffer();
+            if (parts != null) {
+              for (final p in parts) {
+                if (p is Map<String, dynamic> && p['text'] != null) {
+                  textBuffer.write(p['text']);
+                }
+              }
+            }
+            openAiMessages.add({
+              'role': role,
+              'content': textBuffer.toString(),
+            });
+          }
+        }
+      }
+    } else if (data != null) {
+      String text = '';
+      if (data.containsKey('text')) {
+        text = data['text'].toString();
+      }
+      if (text.isNotEmpty) {
+        openAiMessages.add({'role': 'user', 'content': text});
+      }
+    }
+
+    final lastMessageText = openAiMessages.lastOrNull?['content']?.toString() ?? '';
+
     final openAiPayload = <String, Object>{
       'model': modelName,
-      'input': promptText,
+      'messages': openAiMessages,
+      'input': lastMessageText,
     };
 
     if (isStream) {
       openAiPayload['stream'] = true;
     }
-    if (generationConfig?.temperature != null) {
-      openAiPayload['temperature'] = generationConfig!.temperature!;
-    }
-    if (generationConfig?.maxOutputTokens != null) {
-      openAiPayload['max_output_tokens'] = generationConfig!.maxOutputTokens!;
+
+    if (generationConfig != null) {
+      if (generationConfig.temperature != null) {
+        openAiPayload['temperature'] = generationConfig.temperature!;
+      }
+      if (generationConfig.maxOutputTokens != null) {
+        openAiPayload['max_tokens'] = generationConfig.maxOutputTokens!;
+        openAiPayload['max_completion_tokens'] = generationConfig.maxOutputTokens!;
+      }
+      if (generationConfig.topP != null) {
+        openAiPayload['top_p'] = generationConfig.topP!;
+      }
+      if (generationConfig.stopSequences != null && generationConfig.stopSequences!.isNotEmpty) {
+        openAiPayload['stop'] = generationConfig.stopSequences!;
+      }
+      if (generationConfig.responseMimeType == 'application/json') {
+        openAiPayload['response_format'] = {'type': 'json_object'};
+      }
     }
 
     return openAiPayload;
   }
 
-  String _resolveOpenAiEndpoint(String originalEndpoint) {
-    if (_api.dio.options.baseUrl.endsWith('/responses') ||
-        _api.dio.options.baseUrl.endsWith('/responses/')) {
+  String _resolveOpenAiEndpoint(String originalEndpoint, {bool isGetRequest = false}) {
+    if (isGetRequest) return 'models';
+
+    final baseUrl = _api.dio.options.baseUrl.toLowerCase();
+    if (baseUrl.endsWith('/responses') || baseUrl.endsWith('/responses/')) {
       return '';
+    }
+    if (baseUrl.endsWith('/chat/completions') || baseUrl.endsWith('/chat/completions/')) {
+      return '';
+    }
+    if (baseUrl.contains('openai')) {
+      return 'chat/completions';
     }
     return 'responses';
   }
@@ -79,7 +132,7 @@ class GeminiRequestHandler {
     _clearTypeProvider();
     try {
       final targetEndpoint =
-          _isOpenAi && !isGetRequest ? _resolveOpenAiEndpoint(endpoint) : endpoint;
+          _isOpenAi ? _resolveOpenAiEndpoint(endpoint, isGetRequest: isGetRequest) : endpoint;
       final payloadData = _isOpenAi && !isGetRequest
           ? _transformForOpenAi(
               endpoint: endpoint,
@@ -115,7 +168,7 @@ class GeminiRequestHandler {
     _clearTypeProvider();
     try {
       final targetEndpoint =
-          _isOpenAi ? _resolveOpenAiEndpoint(endpoint) : endpoint;
+          _isOpenAi ? _resolveOpenAiEndpoint(endpoint, isGetRequest: false) : endpoint;
       final payloadData = _isOpenAi
           ? _transformForOpenAi(
               endpoint: endpoint,
