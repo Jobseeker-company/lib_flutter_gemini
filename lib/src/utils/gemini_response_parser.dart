@@ -71,23 +71,29 @@ class GeminiResponseParser {
     String modelStr = '';
     List<int> cacheUnits = [];
 
-    await for (final itemList in responseBody.stream) {
-      final list = cacheUnits + itemList;
-      cacheUnits.clear();
+    try {
+      await for (final itemList in responseBody.stream) {
+        final list = cacheUnits + itemList;
+        cacheUnits.clear();
 
-      String res;
-      try {
-        res = utf8.decode(list);
-      } catch (e) {
-        log('Error in parsing chunk', error: e, name: 'Gemini_Exception');
-        cacheUnits = list;
-        continue;
+        String res;
+        try {
+          res = utf8.decode(list);
+        } catch (e) {
+          log('Error in parsing chunk', error: e, name: 'Gemini_Exception');
+          cacheUnits = list;
+          continue;
+        }
+
+        res = _cleanStreamResponse(res, index == 0);
+        yield* _parseStreamLines(
+            res, modelStr, (newModelStr) => modelStr = newModelStr);
+        index++;
       }
-
-      res = _cleanStreamResponse(res, index == 0);
-      yield* _parseStreamLines(
-          res, modelStr, (newModelStr) => modelStr = newModelStr);
-      index++;
+    } catch (e) {
+      // Swallow expected stream-end exceptions (cancel, connection closed) so
+      // the stream completes normally instead of propagating an error.
+      log('Stream ended with: $e', name: 'Gemini_Stream');
     }
   }
 
