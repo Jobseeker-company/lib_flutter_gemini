@@ -15,6 +15,11 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
   final String apiKey; // The API key for authenticating requests.
   CancelToken? cancelToken; // Token used to cancel HTTP requests.
 
+  /// Returns true when the configured base URL points to an OpenAI-compatible endpoint.
+  /// This covers api.openai.com as well as custom proxy servers that include 'openai'
+  /// anywhere in the URL (e.g. my-openai-proxy.example.com).
+  bool get _isOpenAiUrl => dio.options.baseUrl.contains('openai');
+
   /// Constructor for [GeminiService]. Optionally enables logging for debugging.
   GeminiService(this.dio, {required this.apiKey}) {
     if ((Gemini.enableDebugging ?? false)) {
@@ -42,23 +47,28 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
   }) async {
     cancelToken ??= CancelToken(); // Ensure cancelToken is initialized.
 
-    // If safetySettings are provided, include them in the request data.
-    if (safetySettings != null || this.safetySettings != null) {
-      final listSafetySettings = safetySettings ?? this.safetySettings ?? [];
-      final items = [];
-      for (final safetySetting in listSafetySettings) {
-        items.add({
-          'category': safetySetting.category.value,
-          'threshold': safetySetting.threshold.value,
-        });
+    // Only inject Gemini-specific wrappers when NOT using an OpenAI-compatible endpoint.
+    // When _isOpenAiUrl is true, the request payload is already fully formed by
+    // GeminiRequestHandler._transformForOpenAi(), so we must not override it here.
+    if (!_isOpenAiUrl) {
+      // If safetySettings are provided, include them in the request data.
+      if (safetySettings != null || this.safetySettings != null) {
+        final listSafetySettings = safetySettings ?? this.safetySettings ?? [];
+        final items = [];
+        for (final safetySetting in listSafetySettings) {
+          items.add({
+            'category': safetySetting.category.value,
+            'threshold': safetySetting.threshold.value,
+          });
+        }
+        data?['safetySettings'] = items;
       }
-      data?['safetySettings'] = items; // Add safety settings to data.
-    }
 
-    // If generationConfig is provided, include it in the request data.
-    if (generationConfig != null || this.generationConfig != null) {
-      data?['generationConfig'] =
-          generationConfig?.toJson() ?? this.generationConfig?.toJson() ?? {};
+      // If generationConfig is provided, include it in the request data.
+      if (generationConfig != null || this.generationConfig != null) {
+        data?['generationConfig'] =
+            generationConfig?.toJson() ?? this.generationConfig?.toJson() ?? {};
+      }
     }
 
     if (timeout != null) {
@@ -69,9 +79,11 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
     Map<String, dynamic>? requestHeaders;
 
     if (apiKey.trim().isNotEmpty) {
-      if (dio.options.baseUrl.contains('openai.com')) {
+      if (_isOpenAiUrl) {
+        // OpenAI and OpenAI-compatible proxies use Bearer token auth.
         requestHeaders = {'Authorization': 'Bearer ${apiKey.trim()}'};
       } else {
+        // Google Gemini uses both a query param and a header for auth.
         queryParams = {'key': apiKey.trim()};
         requestHeaders = {'x-goog-api-key': apiKey.trim()};
       }
@@ -106,9 +118,11 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
     Map<String, dynamic>? requestHeaders;
 
     if (apiKey.trim().isNotEmpty) {
-      if (dio.options.baseUrl.contains('openai.com')) {
+      if (_isOpenAiUrl) {
+        // OpenAI and OpenAI-compatible proxies use Bearer token auth.
         requestHeaders = {'Authorization': 'Bearer ${apiKey.trim()}'};
       } else {
+        // Google Gemini uses both a query param and a header for auth.
         queryParams = {'key': apiKey.trim()};
         requestHeaders = {'x-goog-api-key': apiKey.trim()};
       }

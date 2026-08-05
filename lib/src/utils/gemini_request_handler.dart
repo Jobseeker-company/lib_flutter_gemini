@@ -12,10 +12,16 @@ class GeminiRequestHandler {
 
   GeminiRequestHandler(this._api);
 
-  bool get _isOpenAi =>
-      _api.dio.options.baseUrl.contains('openai.com') ||
-      _api.dio.options.baseUrl.contains('openai') ||
-      (Gemini.instance.defaultModel?.contains('gpt') ?? false);
+  bool get _isOpenAi {
+    final baseUrl = _api.dio.options.baseUrl;
+    if (baseUrl.contains('openai')) return true;
+    // Also detect by model name — gpt-*, o1-*, o3-*, o4-* are OpenAI model families.
+    final model = Gemini.instance.defaultModel ?? '';
+    return model.startsWith('gpt-') ||
+        model.startsWith('o1') ||
+        model.startsWith('o3') ||
+        model.startsWith('o4');
+  }
 
   Map<String, Object> _transformForOpenAi({
     required String endpoint,
@@ -35,6 +41,25 @@ class GeminiRequestHandler {
     }
 
     final openAiMessages = <Map<String, dynamic>>[];
+
+    // Handle system_instruction (Gemini format) → system role message (OpenAI format).
+    if (data != null && data.containsKey('system_instruction')) {
+      final sysInstruction = data['system_instruction'];
+      String sysText = '';
+      if (sysInstruction is Map<String, dynamic>) {
+        final parts = sysInstruction['parts'] as List?;
+        if (parts != null) {
+          for (final p in parts) {
+            if (p is Map<String, dynamic> && p['text'] != null) {
+              sysText += p['text'].toString();
+            }
+          }
+        }
+      }
+      if (sysText.isNotEmpty) {
+        openAiMessages.add({'role': 'system', 'content': sysText});
+      }
+    }
 
     if (data != null && data.containsKey('contents')) {
       final contents = data['contents'] as List?;
