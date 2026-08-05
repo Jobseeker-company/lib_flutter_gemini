@@ -23,7 +23,8 @@ class GeminiModelManager {
             ? defaultModel.trim()
             : null;
 
-    if (Gemini.instance.disableAutoUpdateModelName) {
+    if (Gemini.instance.disableAutoUpdateModelName ||
+        _api.dio.options.baseUrl.contains('openai')) {
       return effectiveModel ?? expectedModel;
     }
 

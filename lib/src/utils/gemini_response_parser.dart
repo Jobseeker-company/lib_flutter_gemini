@@ -64,7 +64,16 @@ class GeminiResponseParser {
   static Stream<Candidates> _parseStreamLines(String response,
       String currentModelStr, void Function(String) updateModelStr) async* {
     String modelStr = currentModelStr;
-    for (final line in _splitter.convert(response)) {
+    for (final rawLine in _splitter.convert(response)) {
+      var line = rawLine.trim();
+      if (line.isEmpty) continue;
+      if (line.startsWith('data:')) {
+        line = line.substring(5).trim();
+      }
+      if (line == '[DONE]') {
+        modelStr = '';
+        continue;
+      }
       if (modelStr.isEmpty && line == ',') continue;
       modelStr += line;
 
