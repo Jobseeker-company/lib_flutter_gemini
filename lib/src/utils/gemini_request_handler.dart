@@ -152,13 +152,28 @@ class GeminiRequestHandler {
     if (isGetRequest) return 'models';
 
     final baseUrl = _api.dio.options.baseUrl.toLowerCase();
-    if (baseUrl.endsWith('/responses') || baseUrl.endsWith('/responses/')) {
-      return '';
+
+    if (baseUrl.contains('/responses')) {
+      if (baseUrl.endsWith('/responses') || baseUrl.endsWith('/responses/')) {
+        final idx = baseUrl.indexOf('/responses');
+        final newBase = _api.dio.options.baseUrl.substring(0, idx);
+        _api.dio.options.baseUrl =
+            newBase.endsWith('/') ? newBase : '$newBase/';
+      }
+      return 'responses';
     }
-    if (baseUrl.endsWith('/chat/completions') ||
-        baseUrl.endsWith('/chat/completions/')) {
-      return '';
+
+    if (baseUrl.contains('/chat/completions')) {
+      if (baseUrl.endsWith('/chat/completions') ||
+          baseUrl.endsWith('/chat/completions/')) {
+        final idx = baseUrl.indexOf('/chat/completions');
+        final newBase = _api.dio.options.baseUrl.substring(0, idx);
+        _api.dio.options.baseUrl =
+            newBase.endsWith('/') ? newBase : '$newBase/';
+      }
+      return 'chat/completions';
     }
+
     if (baseUrl.contains('openai')) {
       return 'chat/completions';
     }
