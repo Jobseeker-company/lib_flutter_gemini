@@ -40,21 +40,9 @@ class GeminiRequestHandler {
       }
     }
 
-    final isResponsesApi = _api.dio.options.baseUrl.contains('responses');
-    if (isResponsesApi) {
-      final payload = <String, Object>{
-        'model': modelName,
-        'input': promptText,
-      };
-      if (isStream) payload['stream'] = true;
-      return payload;
-    }
-
     final openAiPayload = <String, Object>{
       'model': modelName,
-      'messages': [
-        {'role': 'user', 'content': promptText}
-      ],
+      'input': promptText,
     };
 
     if (isStream) {
@@ -71,10 +59,11 @@ class GeminiRequestHandler {
   }
 
   String _resolveOpenAiEndpoint(String originalEndpoint) {
-    if (_api.dio.options.baseUrl.contains('responses')) {
+    if (_api.dio.options.baseUrl.endsWith('/responses') ||
+        _api.dio.options.baseUrl.endsWith('/responses/')) {
       return '';
     }
-    return 'chat/completions';
+    return 'responses';
   }
 
   /// Executes a standard API request.
