@@ -65,17 +65,22 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
       log(timeout.debug());
     }
 
-    Map<String, dynamic>? queryParams;
+    Map<String, dynamic>? requestHeaders;
     if (apiKey.trim().isNotEmpty) {
-      queryParams = {'key': apiKey};
+      requestHeaders = {};
+      if (dio.options.baseUrl.contains('openai.com')) {
+        requestHeaders['Authorization'] = 'Bearer ${apiKey.trim()}';
+      } else {
+        requestHeaders['x-goog-api-key'] = apiKey.trim();
+      }
     }
 
     // Make the POST request using Dio.
     return handler(() => dio.post(
           route,
           data: jsonEncode(data), // Encode the data as JSON.
-          queryParameters: queryParams,
           options: Options(
+            headers: requestHeaders,
             responseType: isStreamResponse == true ? ResponseType.stream : null,
             receiveTimeout: timeout?.receiveTimeout,
             sendTimeout: timeout?.sendTimeout,
@@ -94,14 +99,19 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
     if (timeout != null) {
       log(timeout.debug());
     }
-    Map<String, dynamic>? queryParams;
+    Map<String, dynamic>? requestHeaders;
     if (apiKey.trim().isNotEmpty) {
-      queryParams = {'key': apiKey};
+      requestHeaders = {};
+      if (dio.options.baseUrl.contains('openai.com')) {
+        requestHeaders['Authorization'] = 'Bearer ${apiKey.trim()}';
+      } else {
+        requestHeaders['x-goog-api-key'] = apiKey.trim();
+      }
     }
     // Make the GET request using Dio.
     return handler(() => dio.get(route,
-        queryParameters: queryParams,
         options: Options(
+          headers: requestHeaders,
           receiveTimeout: timeout?.receiveTimeout,
           sendTimeout: timeout?.sendTimeout,
         ),

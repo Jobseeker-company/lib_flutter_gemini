@@ -52,11 +52,7 @@ class Gemini implements GeminiInterface {
   }) : _impl = GeminiImpl(
           api: GeminiService(
             Dio(BaseOptions(
-              baseUrl: includeVersionInBaseUrl
-                  ? '${baseURL ?? Constants.baseUrl}${version ?? Constants.defaultVersion}/'
-                  : (baseURL != null && baseURL.endsWith('/')
-                      ? baseURL
-                      : '${baseURL ?? Constants.baseUrl}/'),
+              baseUrl: _buildBaseUrl(baseURL, version, includeVersionInBaseUrl),
               contentType: 'application/json',
               headers: headers,
             )),
@@ -66,6 +62,23 @@ class Gemini implements GeminiInterface {
           safetySettings: safetySettings,
           generationConfig: defaultGenerationConfig,
         );
+
+  static String _buildBaseUrl(
+      String? baseURL, String? version, bool includeVersionInBaseUrl) {
+    if (baseURL != null && baseURL.trim().isNotEmpty) {
+      final trimmed = baseURL.trim();
+      if (!includeVersionInBaseUrl ||
+          trimmed.contains('/v1') ||
+          trimmed.contains('/v2') ||
+          trimmed.contains('/api')) {
+        return trimmed.endsWith('/') ? trimmed : '$trimmed/';
+      }
+      return trimmed.endsWith('/')
+          ? '$trimmed${version ?? Constants.defaultVersion}/'
+          : '$trimmed/${version ?? Constants.defaultVersion}/';
+    }
+    return '${Constants.baseUrl}${version ?? Constants.defaultVersion}/';
+  }
 
   /// singleton [instance] from main [Gemini] class
   static late Gemini instance;
