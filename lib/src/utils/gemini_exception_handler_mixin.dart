@@ -1,47 +1,23 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_gemini/src/repository/api_interface.dart';
 import 'package:flutter_gemini/src/utils/gemini_exception.dart';
+import 'package:flutter_gemini/src/networking/ai_exception.dart';
 
 /// A mixin that provides centralized exception handling for API requests.
-/// This is designed to simplify error management by wrapping requests
-/// with a handler that detects and processes exceptions.
 ///
-/// **Usage:**
-/// Add this mixin to a class implementing `ApiInterface` to gain access
-/// to the `handler` method for streamlined API call management.
-///
-/// **Example:**
-/// ```dart
-/// class ApiService with GeminiExceptionHandler implements ApiInterface {
-///   Future<Response> fetchData() async {
-///     return await handler(() async {
-///       return await dio.get('/endpoint');
-///     });
-///   }
-/// }
-/// ```
+/// Supports both raw Dio errors (from direct Dio calls) and [AiException]
+/// errors (from [AiClient] calls).
 mixin GeminiExceptionHandler on ApiInterface {
   /// Wraps an API request and handles potential exceptions.
   ///
-  /// **Parameters:**
-  /// - `request` (Future<Response> Function()): A function that executes
-  ///   the actual API request and returns a `Future<Response>`.
-  ///
-  /// **Returns:**
-  /// - `Future<Response>`: The API response if the request succeeds.
-  ///
-  /// **Throws:**
-  /// - `GeminiException`: If the response indicates an error or if a
-  ///   DioException occurs.
+  /// Catches Dio errors, [AiException] from [AiClient], and generic errors,
+  /// mapping them all to the [GeminiException] hierarchy.
   Future<Response> handler(Future<Response> Function() request) async {
     try {
-      // Execute the API request.
       final res = await request();
 
-      // Extract the HTTP status code.
       int statusCode = res.statusCode ?? 200;
 
-      // If the status code indicates success, return the response.
       if (statusCode >= 200 && statusCode < 300) {
         return res;
       }
@@ -72,7 +48,25 @@ mixin GeminiExceptionHandler on ApiInterface {
         rethrow;
       }
 
-      // Handle Dio-specific exceptions.
+      // Handle AiException thrown by AiClient — map to Gemini equivalents.
+      if (e is AiApiException) {
+        throw GeminiApiException(
+          e.message,
+          statusCode: e.statusCode,
+          details: e.details,
+        );
+      }
+      if (e is AiNetworkException) {
+        throw GeminiNetworkException(
+          e.message,
+          statusCode: e.statusCode,
+        );
+      }
+      if (e is AiConfigException) {
+        throw GeminiConfigException(e.message);
+      }
+
+      // Handle Dio-specific exceptions (when AiClient is not used).
       if (e is DioException) {
         final statusCode = e.response?.statusCode;
         final data = e.response?.data;
@@ -113,7 +107,7 @@ mixin GeminiExceptionHandler on ApiInterface {
         );
       }
 
-      // For all other exceptions, wrap in GeminiApiException or GeminiException.
+      // For all other exceptions, wrap in GeminiApiException.
       throw GeminiApiException(e.toString(), statusCode: -1);
     }
   }

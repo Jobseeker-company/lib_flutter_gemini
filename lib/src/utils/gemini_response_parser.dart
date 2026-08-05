@@ -13,7 +13,8 @@ class GeminiResponseParser {
   static const _splitter = LineSplitter();
 
   static Candidates? parseGenerateResponse(Map<String, dynamic> responseData) {
-    if (responseData.containsKey('output_text') && responseData['output_text'] != null) {
+    if (responseData.containsKey('output_text') &&
+        responseData['output_text'] != null) {
       return Candidates(
         content: Content(
           parts: [Part.text(responseData['output_text'].toString())],
@@ -47,7 +48,8 @@ class GeminiResponseParser {
       final choices = responseData['choices'] as List?;
       final choice = choices?.firstOrNull;
       final message = choice?['message'];
-      final contentText = message?['content'] ?? choice?['delta']?['content'] ?? '';
+      final contentText =
+          message?['content'] ?? choice?['delta']?['content'] ?? '';
       return Candidates(
         content: Content(
           parts: [Part.text(contentText.toString())],
@@ -135,9 +137,12 @@ class GeminiResponseParser {
       if (decoded is Map<String, dynamic>) {
         if (decoded.containsKey('candidates')) {
           final candidateData = (decoded['candidates'] as List?)?.firstOrNull;
-          return candidateData != null ? Candidates.fromJson(candidateData) : null;
+          return candidateData != null
+              ? Candidates.fromJson(candidateData)
+              : null;
         }
-        if (decoded.containsKey('output_text') && decoded['output_text'] != null) {
+        if (decoded.containsKey('output_text') &&
+            decoded['output_text'] != null) {
           return Candidates(
             content: Content(
               parts: [Part.text(decoded['output_text'].toString())],
@@ -146,7 +151,8 @@ class GeminiResponseParser {
           );
         }
         if (decoded.containsKey('delta') && decoded['delta'] is Map) {
-          final deltaText = decoded['delta']['text'] ?? decoded['delta']['content'];
+          final deltaText =
+              decoded['delta']['text'] ?? decoded['delta']['content'];
           if (deltaText != null && deltaText.toString().isNotEmpty) {
             return Candidates(
               content: Content(

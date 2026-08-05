@@ -15,4 +15,8 @@ export 'src/utils/candidate_extension.dart';
 export 'src/utils/gemini_exception.dart';
 
 export 'src/models/part/part.dart'
-    show FileDataPart, FilePart, TextPart, Part, InlineData, InlinePart;
+    show FileDataPart, FilePart, Part, TextPart, InlineData, InlinePart;
+
+export 'src/networking/ai_client.dart';
+export 'src/networking/ai_exception.dart';
+export 'src/networking/sse_transformer.dart';

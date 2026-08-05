@@ -51,7 +51,8 @@ void main() {
         'https://openai-gateway.internal/v1/',
       ];
       for (final url in cases) {
-        expect(url.contains('openai'), isTrue, reason: 'Expected $url to match OpenAI pattern');
+        expect(url.contains('openai'), isTrue,
+            reason: 'Expected $url to match OpenAI pattern');
       }
     });
 
@@ -61,13 +62,15 @@ void main() {
         'https://my-gemini-proxy.example.com/v1/',
       ];
       for (final url in cases) {
-        expect(url.contains('openai'), isFalse, reason: 'Expected $url to NOT match OpenAI pattern');
+        expect(url.contains('openai'), isFalse,
+            reason: 'Expected $url to NOT match OpenAI pattern');
       }
     });
 
     test('GeminiService created with Gemini URL does not contain openai', () {
       final service = GeminiService(
-        Dio(BaseOptions(baseUrl: 'https://generativelanguage.googleapis.com/v1/')),
+        Dio(BaseOptions(
+            baseUrl: 'https://generativelanguage.googleapis.com/v1/')),
         apiKey: 'AIza-test',
       );
       expect(service.dio.options.baseUrl.contains('openai'), isFalse);
@@ -84,13 +87,18 @@ void main() {
 
   group('OpenAI Adapter — Endpoint Resolution Logic', () {
     test('proxy baseUrl ending with /responses resolves to empty suffix', () {
-      for (final url in ['https://proxy.com/responses', 'https://proxy.com/responses/']) {
-        final resolved = url.endsWith('/responses') || url.endsWith('/responses/');
+      for (final url in [
+        'https://proxy.com/responses',
+        'https://proxy.com/responses/'
+      ]) {
+        final resolved =
+            url.endsWith('/responses') || url.endsWith('/responses/');
         expect(resolved, isTrue);
       }
     });
 
-    test('proxy baseUrl ending with /chat/completions resolves to empty suffix', () {
+    test('proxy baseUrl ending with /chat/completions resolves to empty suffix',
+        () {
       for (final url in [
         'https://proxy.com/chat/completions',
         'https://proxy.com/chat/completions/'
@@ -129,9 +137,12 @@ void main() {
       expect(config.responseMimeType, 'application/json');
     });
 
-    test('responseMimeType application/json maps to json_object response_format', () {
+    test(
+        'responseMimeType application/json maps to json_object response_format',
+        () {
       const mime = 'application/json';
-      final responseFormat = mime == 'application/json' ? {'type': 'json_object'} : null;
+      final responseFormat =
+          mime == 'application/json' ? {'type': 'json_object'} : null;
       expect(responseFormat, {'type': 'json_object'});
     });
 
@@ -162,7 +173,8 @@ void main() {
 
     test('null role defaults to user', () {
       const String? geminiRole = null;
-      final mapped = geminiRole == 'model' ? 'assistant' : (geminiRole ?? 'user');
+      final mapped =
+          geminiRole == 'model' ? 'assistant' : (geminiRole ?? 'user');
       expect(mapped, 'user');
     });
   });
