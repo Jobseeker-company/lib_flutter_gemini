@@ -25,14 +25,9 @@ class GeminiRequestHandler {
         model.startsWith('o4');
   }
 
-  /// Returns true when the resolved endpoint is the Responses API (v1/responses).
-  bool _isResponsesEndpoint() {
-    final baseUrl = _api.dio.options.baseUrl.toLowerCase();
-    return baseUrl.endsWith('/responses') || baseUrl.endsWith('/responses/');
-  }
-
   Map<String, Object> _transformForOpenAi({
     required String endpoint,
+    required String targetEndpoint,
     Map<String, Object>? data,
     GenerationConfig? generationConfig,
     required bool isStream,
@@ -105,7 +100,8 @@ class GeminiRequestHandler {
 
     final lastMessageText =
         openAiMessages.lastOrNull?['content']?.toString() ?? '';
-    final useResponsesApi = _isResponsesEndpoint();
+    final useResponsesApi =
+        targetEndpoint == 'responses' || targetEndpoint.endsWith('/responses');
 
     final openAiPayload = <String, Object>{
       'model': modelName,
@@ -198,6 +194,7 @@ class GeminiRequestHandler {
       final payloadData = _isOpenAi && !isGetRequest
           ? _transformForOpenAi(
               endpoint: endpoint,
+              targetEndpoint: targetEndpoint,
               data: data,
               generationConfig: generationConfig,
               isStream: false,
@@ -235,6 +232,7 @@ class GeminiRequestHandler {
       final payloadData = _isOpenAi
           ? _transformForOpenAi(
               endpoint: endpoint,
+              targetEndpoint: targetEndpoint,
               data: data,
               generationConfig: generationConfig,
               isStream: true,
