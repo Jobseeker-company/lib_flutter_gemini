@@ -105,6 +105,7 @@ class GeminiResponseParser {
     for (final rawLine in _splitter.convert(response)) {
       var line = rawLine.trim();
       if (line.isEmpty) continue;
+      if (line.startsWith('event:')) continue;
       if (line.startsWith('data:')) {
         line = line.substring(5).trim();
       }
