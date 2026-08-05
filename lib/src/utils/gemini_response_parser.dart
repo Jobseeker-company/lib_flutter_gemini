@@ -150,13 +150,19 @@ class GeminiResponseParser {
             ),
           );
         }
-        if (decoded.containsKey('delta') && decoded['delta'] is Map) {
-          final deltaText =
-              decoded['delta']['text'] ?? decoded['delta']['content'];
-          if (deltaText != null && deltaText.toString().isNotEmpty) {
+        if (decoded.containsKey('delta')) {
+          final deltaVal = decoded['delta'];
+          String? deltaText;
+          if (deltaVal is String) {
+            deltaText = deltaVal;
+          } else if (deltaVal is Map) {
+            deltaText =
+                deltaVal['text']?.toString() ?? deltaVal['content']?.toString();
+          }
+          if (deltaText != null && deltaText.isNotEmpty) {
             return Candidates(
               content: Content(
-                parts: [Part.text(deltaText.toString())],
+                parts: [Part.text(deltaText)],
                 role: 'model',
               ),
             );
