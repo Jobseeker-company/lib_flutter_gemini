@@ -14,7 +14,10 @@ Stream<Map<String, dynamic>> parseSseStream(Stream<List<int>> byteStream) {
   final controller = StreamController<Map<String, dynamic>>();
   String buffer = '';
 
-  byteStream.transform(utf8.decoder).transform(const LineSplitter()).listen(
+  byteStream
+      .map((chunk) => utf8.decode(chunk, allowMalformed: true))
+      .transform(const LineSplitter())
+      .listen(
     (line) {
       final trimmed = line.trim();
       if (trimmed.isEmpty) return;
