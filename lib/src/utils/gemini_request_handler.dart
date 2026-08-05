@@ -40,6 +40,16 @@ class GeminiRequestHandler {
       }
     }
 
+    final isResponsesApi = _api.dio.options.baseUrl.contains('responses');
+    if (isResponsesApi) {
+      final payload = <String, Object>{
+        'model': modelName,
+        'input': promptText,
+      };
+      if (isStream) payload['stream'] = true;
+      return payload;
+    }
+
     final openAiPayload = <String, Object>{
       'model': modelName,
       'messages': [
@@ -60,6 +70,13 @@ class GeminiRequestHandler {
     return openAiPayload;
   }
 
+  String _resolveOpenAiEndpoint(String originalEndpoint) {
+    if (_api.dio.options.baseUrl.contains('responses')) {
+      return '';
+    }
+    return 'chat/completions';
+  }
+
   /// Executes a standard API request.
   Future<T> executeRequest<T>({
     required String endpoint,
@@ -73,7 +90,7 @@ class GeminiRequestHandler {
     _clearTypeProvider();
     try {
       final targetEndpoint =
-          _isOpenAi && !isGetRequest ? 'chat/completions' : endpoint;
+          _isOpenAi && !isGetRequest ? _resolveOpenAiEndpoint(endpoint) : endpoint;
       final payloadData = _isOpenAi && !isGetRequest
           ? _transformForOpenAi(
               endpoint: endpoint,
@@ -108,7 +125,8 @@ class GeminiRequestHandler {
   }) async* {
     _clearTypeProvider();
     try {
-      final targetEndpoint = _isOpenAi ? 'chat/completions' : endpoint;
+      final targetEndpoint =
+          _isOpenAi ? _resolveOpenAiEndpoint(endpoint) : endpoint;
       final payloadData = _isOpenAi
           ? _transformForOpenAi(
               endpoint: endpoint,

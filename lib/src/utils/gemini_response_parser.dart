@@ -13,6 +13,36 @@ class GeminiResponseParser {
   static const _splitter = LineSplitter();
 
   static Candidates? parseGenerateResponse(Map<String, dynamic> responseData) {
+    if (responseData.containsKey('output_text') && responseData['output_text'] != null) {
+      return Candidates(
+        content: Content(
+          parts: [Part.text(responseData['output_text'].toString())],
+          role: 'model',
+        ),
+      );
+    }
+    if (responseData.containsKey('output') && responseData['output'] is List) {
+      final outputs = responseData['output'] as List;
+      final textParts = <String>[];
+      for (final item in outputs) {
+        if (item is Map<String, dynamic> && item['content'] is List) {
+          final contents = item['content'] as List;
+          for (final c in contents) {
+            if (c is Map<String, dynamic> && c['text'] != null) {
+              textParts.add(c['text'].toString());
+            }
+          }
+        }
+      }
+      if (textParts.isNotEmpty) {
+        return Candidates(
+          content: Content(
+            parts: [Part.text(textParts.join('\n'))],
+            role: 'model',
+          ),
+        );
+      }
+    }
     if (responseData.containsKey('choices')) {
       final choices = responseData['choices'] as List?;
       final choice = choices?.firstOrNull;
@@ -100,6 +130,25 @@ class GeminiResponseParser {
         if (decoded.containsKey('candidates')) {
           final candidateData = (decoded['candidates'] as List?)?.firstOrNull;
           return candidateData != null ? Candidates.fromJson(candidateData) : null;
+        }
+        if (decoded.containsKey('output_text') && decoded['output_text'] != null) {
+          return Candidates(
+            content: Content(
+              parts: [Part.text(decoded['output_text'].toString())],
+              role: 'model',
+            ),
+          );
+        }
+        if (decoded.containsKey('delta') && decoded['delta'] is Map) {
+          final deltaText = decoded['delta']['text'] ?? decoded['delta']['content'];
+          if (deltaText != null && deltaText.toString().isNotEmpty) {
+            return Candidates(
+              content: Content(
+                parts: [Part.text(deltaText.toString())],
+                role: 'model',
+              ),
+            );
+          }
         }
         if (decoded.containsKey('choices')) {
           final choice = (decoded['choices'] as List?)?.firstOrNull;
