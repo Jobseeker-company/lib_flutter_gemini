@@ -48,8 +48,28 @@ Stream<Map<String, dynamic>> parseSseStream(Stream<List<int>> byteStream) {
           ref: () => buffer, setBuffer: (v) => buffer = v);
       controller.close();
     },
-    onError: (error) => controller.addError(error),
-    cancelOnError: true,
+    onError: (error) {
+      // After [DONE] OpenAI closes the TCP connection, which Dio surfaces as
+      // a DioException (connectionError / cancel). Treat those as a normal
+      // end-of-stream so the controller closes cleanly instead of propagating
+      // an error to the subscriber.
+      final msg = error.toString().toLowerCase();
+      final isExpectedClose = msg.contains('cancel') ||
+          msg.contains('connection closed') ||
+          msg.contains('connection reset') ||
+          msg.contains('socketexception') ||
+          msg.contains('broken pipe') ||
+          msg.contains('connection error') ||
+          msg.contains('connectionerror');
+      if (isExpectedClose) {
+        _tryFlushBuffer(controller,
+            ref: () => buffer, setBuffer: (v) => buffer = v);
+        if (!controller.isClosed) controller.close();
+      } else {
+        if (!controller.isClosed) controller.addError(error);
+      }
+    },
+    cancelOnError: false,
   );
 
   return controller.stream;
