@@ -52,7 +52,7 @@ class GeminiRequestHandler {
       openAiPayload['temperature'] = generationConfig!.temperature!;
     }
     if (generationConfig?.maxOutputTokens != null) {
-      openAiPayload['max_tokens'] = generationConfig!.maxOutputTokens!;
+      openAiPayload['max_output_tokens'] = generationConfig!.maxOutputTokens!;
     }
 
     return openAiPayload;
