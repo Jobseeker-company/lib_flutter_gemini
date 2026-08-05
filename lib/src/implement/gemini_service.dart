@@ -65,13 +65,15 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
       log(timeout.debug());
     }
 
+    Map<String, dynamic>? queryParams;
     Map<String, dynamic>? requestHeaders;
+
     if (apiKey.trim().isNotEmpty) {
-      requestHeaders = {};
       if (dio.options.baseUrl.contains('openai.com')) {
-        requestHeaders['Authorization'] = 'Bearer ${apiKey.trim()}';
+        requestHeaders = {'Authorization': 'Bearer ${apiKey.trim()}'};
       } else {
-        requestHeaders['x-goog-api-key'] = apiKey.trim();
+        queryParams = {'key': apiKey.trim()};
+        requestHeaders = {'x-goog-api-key': apiKey.trim()};
       }
     }
 
@@ -79,6 +81,7 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
     return handler(() => dio.post(
           route,
           data: jsonEncode(data), // Encode the data as JSON.
+          queryParameters: queryParams,
           options: Options(
             headers: requestHeaders,
             responseType: isStreamResponse == true ? ResponseType.stream : null,
@@ -99,17 +102,20 @@ class GeminiService extends ApiInterface with GeminiExceptionHandler {
     if (timeout != null) {
       log(timeout.debug());
     }
+    Map<String, dynamic>? queryParams;
     Map<String, dynamic>? requestHeaders;
+
     if (apiKey.trim().isNotEmpty) {
-      requestHeaders = {};
       if (dio.options.baseUrl.contains('openai.com')) {
-        requestHeaders['Authorization'] = 'Bearer ${apiKey.trim()}';
+        requestHeaders = {'Authorization': 'Bearer ${apiKey.trim()}'};
       } else {
-        requestHeaders['x-goog-api-key'] = apiKey.trim();
+        queryParams = {'key': apiKey.trim()};
+        requestHeaders = {'x-goog-api-key': apiKey.trim()};
       }
     }
     // Make the GET request using Dio.
     return handler(() => dio.get(route,
+        queryParameters: queryParams,
         options: Options(
           headers: requestHeaders,
           receiveTimeout: timeout?.receiveTimeout,

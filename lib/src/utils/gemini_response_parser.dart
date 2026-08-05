@@ -4,14 +4,29 @@ import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter_gemini/src/init.dart';
 import 'package:flutter_gemini/src/models/candidates/candidates.dart';
+import 'package:flutter_gemini/src/models/content/content.dart';
 import 'package:flutter_gemini/src/models/gemini_response/gemini_response.dart';
+import 'package:flutter_gemini/src/models/part/part.dart';
 import 'package:flutter_gemini/src/utils/candidate_extension.dart';
 
 class GeminiResponseParser {
   static const _splitter = LineSplitter();
 
-  static Candidates? parseGenerateResponse(Map<String, dynamic> responseData) =>
-      GeminiResponse.fromJson(responseData).candidates?.lastOrNull;
+  static Candidates? parseGenerateResponse(Map<String, dynamic> responseData) {
+    if (responseData.containsKey('choices')) {
+      final choices = responseData['choices'] as List?;
+      final choice = choices?.firstOrNull;
+      final message = choice?['message'];
+      final contentText = message?['content'] ?? choice?['delta']?['content'] ?? '';
+      return Candidates(
+        content: Content(
+          parts: [Part.text(contentText.toString())],
+          role: 'model',
+        ),
+      );
+    }
+    return GeminiResponse.fromJson(responseData).candidates?.lastOrNull;
+  }
 
   static List<List<num>?>? parseBatchEmbeddingResponse(
       Map<String, dynamic> responseData) {
@@ -65,9 +80,33 @@ class GeminiResponseParser {
 
   static Candidates? _tryParseCandidate(String jsonStr) {
     try {
-      final candidateData =
-          (jsonDecode(jsonStr)['candidates'] as List?)?.firstOrNull;
-      return candidateData != null ? Candidates.fromJson(candidateData) : null;
+      String clean = jsonStr.trim();
+      if (clean.startsWith('data:')) {
+        clean = clean.substring(5).trim();
+      }
+      if (clean == '[DONE]') return null;
+
+      final decoded = jsonDecode(clean);
+      if (decoded is Map<String, dynamic>) {
+        if (decoded.containsKey('candidates')) {
+          final candidateData = (decoded['candidates'] as List?)?.firstOrNull;
+          return candidateData != null ? Candidates.fromJson(candidateData) : null;
+        }
+        if (decoded.containsKey('choices')) {
+          final choice = (decoded['choices'] as List?)?.firstOrNull;
+          final contentText =
+              choice?['delta']?['content'] ?? choice?['message']?['content'];
+          if (contentText != null && contentText.toString().isNotEmpty) {
+            return Candidates(
+              content: Content(
+                parts: [Part.text(contentText.toString())],
+                role: 'model',
+              ),
+            );
+          }
+        }
+      }
+      return null;
     } catch (e) {
       return null;
     }
