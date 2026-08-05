@@ -23,6 +23,12 @@ class GeminiRequestHandler {
         model.startsWith('o4');
   }
 
+  /// Returns true when the resolved endpoint is the Responses API (v1/responses).
+  bool _isResponsesEndpoint() {
+    final baseUrl = _api.dio.options.baseUrl.toLowerCase();
+    return baseUrl.endsWith('/responses') || baseUrl.endsWith('/responses/');
+  }
+
   Map<String, Object> _transformForOpenAi({
     required String endpoint,
     Map<String, Object>? data,
@@ -95,11 +101,11 @@ class GeminiRequestHandler {
     }
 
     final lastMessageText = openAiMessages.lastOrNull?['content']?.toString() ?? '';
+    final useResponsesApi = _isResponsesEndpoint();
 
     final openAiPayload = <String, Object>{
       'model': modelName,
-      'messages': openAiMessages,
-      'input': lastMessageText,
+      if (useResponsesApi) 'input': lastMessageText else 'messages': openAiMessages,
     };
 
     if (isStream) {
@@ -111,7 +117,11 @@ class GeminiRequestHandler {
         openAiPayload['temperature'] = generationConfig.temperature!;
       }
       if (generationConfig.maxOutputTokens != null) {
-        openAiPayload['max_output_tokens'] = generationConfig.maxOutputTokens!;
+        if (useResponsesApi) {
+          openAiPayload['max_output_tokens'] = generationConfig.maxOutputTokens!;
+        } else {
+          openAiPayload['max_completion_tokens'] = generationConfig.maxOutputTokens!;
+        }
       }
       if (generationConfig.topP != null) {
         openAiPayload['top_p'] = generationConfig.topP!;
